@@ -45,10 +45,45 @@ const Room = (props) => {
     socketRef.current = io.connect('/');
     navigator.mediaDevices
       .getUserMedia({ video: videoConstraints, audio: true })
-      .then((stream) => {});
+      .then((stream) => {
+        userVideo.current.srcObject = stream;
+        socketRef.current.emit('join room');
+        // everybody in chat except current
+        socketRef.current.on('all users', (users) => {
+          // user just joined
+          const peers = [];
+          // create new peer for each person
+          users.forEach((userId) => {
+            // userId, socket ref so we know who is calling and stream
+            const peer = createPeer(userId, socketRef.current.id, stream);
+            // array of peers that we try to keep track of
+            peersRef.current.push({
+              peerId: userId,
+              peer,
+            });
+            // save to state for handling the render
+            peers.push(peer);
+            setPeers(peers);
+          });
+        });
+      });
   }, []);
 
-  function createPeer(userToSignal, callerID, stream) {}
+  function createPeer(userToSignal, callerID, stream) {
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream,
+    });
+
+    peer.on('signal', (signal) => {
+      socketRef.current.emit('sending signal', {
+        userToSignal,
+        callerID,
+        signal,
+      });
+    });
+  }
 
   function addPeer(incomingSignal, callerID, stream) {}
 
