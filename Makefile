@@ -1,3 +1,3 @@
 .PHONY: eslint
 eslint:
-	yarn eslint
+	yarn eslint --fix .
